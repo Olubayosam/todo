@@ -4,7 +4,7 @@ import { useData } from '../store/data';
 import { useUI, toast, type Theme } from '../store/ui';
 import { setPrefs } from '../sync/actions';
 import { bootstrap, dispatch, pendingCount } from '../sync/engine';
-import { api, uid as newUid } from '../lib/api';
+import { api, ApiError, uid as newUid } from '../lib/api';
 import { enableNotifications, pushStatus, sendTestPush } from '../focus/notify';
 import { folderSupported, forgetFolder, loadFolderInfo, pickFolder, usePlayer } from '../focus/player';
 import { TAG_HEX } from '../components/ui/bits';
@@ -253,8 +253,8 @@ function SyncSection() {
             try {
               await bootstrap();
               toast('Up to date', 'success');
-            } catch {
-              toast("Couldn't reach the server", 'error');
+            } catch (e) {
+              toast(e instanceof ApiError ? e.message : "Couldn't reach the server", 'error');
             }
             setBusy(false);
           }}

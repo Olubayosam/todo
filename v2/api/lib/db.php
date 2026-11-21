@@ -8,11 +8,17 @@ function db(): PDO
     $host = env('DB_HOST', 'localhost');
     $name = env('DB_NAME', 'todo');
     $charset = env('DB_CHARSET', 'utf8mb4');
-    $pdo = new PDO("mysql:host={$host};dbname={$name};charset={$charset}", env('DB_USER', 'root'), env('DB_PASS', ''), [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false,
-    ]);
+    try {
+        $pdo = new PDO("mysql:host={$host};dbname={$name};charset={$charset}", env('DB_USER', 'root'), env('DB_PASS', ''), [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ]);
+    } catch (PDOException $e) {
+        // The real message (may include the DB user name) goes to the server log only
+        error_log('[todo-v2] DB connect failed: ' . $e->getMessage());
+        throw new ConfigError("Server setup: can't connect to the database. Check DB_HOST, DB_NAME, DB_USER and DB_PASS in .env.");
+    }
     return $pdo;
 }
 

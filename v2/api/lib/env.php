@@ -32,7 +32,12 @@ function load_env(): void
         if ($parent === $dir) break;
         $dir = $parent;
     }
-    throw new RuntimeException('.env file not found');
+    throw new ConfigError('Server setup: the .env file is missing. Put it in public_html (or in the app or api folder) — see DEPLOY.md.');
+}
+
+/** Setup problems whose message is safe (and useful) to show in the app. */
+class ConfigError extends RuntimeException
+{
 }
 
 function env(string $key, ?string $default = null): ?string

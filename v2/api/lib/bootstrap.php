@@ -24,6 +24,8 @@ function handle_errors(callable $fn): void
         $fn();
     } catch (ApiError $e) {
         json_out(['error' => $e->getMessage()], $e->status);
+    } catch (ConfigError $e) {
+        json_out(['error' => $e->getMessage(), 'setup' => true], 503);
     } catch (Throwable $e) {
         error_log('[todo-v2] ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
         $debug = env('APP_DEBUG') === '1';

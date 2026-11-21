@@ -51,6 +51,7 @@ const STATUS_META: Record<SyncStatus, { label: string; color: string }> = {
   polling: { label: 'Syncing', color: 'var(--cyan)' },
   connecting: { label: 'Connecting…', color: 'var(--gold)' },
   offline: { label: 'Offline — changes saved locally', color: 'var(--low)' },
+  error: { label: 'Server problem — changes saved locally', color: 'var(--urgent)' },
 };
 
 export function SyncDot({ withLabel }: { withLabel?: boolean }) {

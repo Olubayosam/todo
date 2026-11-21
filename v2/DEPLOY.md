@@ -55,6 +55,20 @@ On iPhone, first open the site in Safari → Share → **Add to Home Screen**, o
 - **Phone / other browsers:** Settings → *Focus music* → Upload tracks. Files go to
   `todo-v2/api/storage/music/` (not web-accessible; streamed only to a logged-in session).
 
+## Updating to a new build
+
+The zip never contains `.env` (so secrets never end up in a download or in git). To update:
+
+1. Upload the new `todo-v2.zip` next to the existing folder and **Extract → overwrite** into it.
+   Don't delete the old folder first — if your `.env` lives inside it, deleting the folder deletes the `.env`.
+2. If you did replace the folder, put `.env` back. The API looks for it in these places, in order:
+   `…/todo-v2/api/.env`, `…/todo-v2/.env`, `public_html/.env`, and the folder above `public_html`.
+   Keeping it in `public_html` (or above it) means app updates can never remove it.
+
+If something is wrong with the setup, the login screen now says so directly, for example
+*"Server setup: the .env file is missing"* or *"can't connect to the database"*, and the sync dot turns red
+(*Server problem*). Your changes stay saved on the device and are sent once the server is fixed.
+
 ## 6. Switching v2 to be the main app (later)
 
 When you're happy, either point people at `/todo-v2/`, or move v1's files into a `todo-v1/` folder and

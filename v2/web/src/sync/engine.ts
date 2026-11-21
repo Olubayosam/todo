@@ -22,7 +22,7 @@ let seq = 0;
 
 type Msg = { type: 'ops'; ops: Op[] } | { type: 'changes'; changes: Change[]; cursor: number } | { type: 'resync' } | { type: 'status'; status: SyncStatus };
 
-export type SyncStatus = 'connecting' | 'live' | 'polling' | 'offline';
+export type SyncStatus = 'connecting' | 'live' | 'polling' | 'offline' | 'error';
 let status: SyncStatus = 'connecting';
 const statusListeners = new Set<(s: SyncStatus) => void>();
 export function onSyncStatus(fn: (s: SyncStatus) => void) {
@@ -89,6 +89,7 @@ export async function flushOutbox(): Promise<void> {
         res = await api('mutate', { method: 'POST', body: JSON.stringify({ ops: batch.map(([, op]) => op) }) });
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) return;
+        if (e instanceof ApiError && e.status >= 500) setStatus('error');
         scheduleFlush(backoff);
         backoff = Math.min(backoff * 2, 30000);
         return;
@@ -142,9 +143,11 @@ export function bootstrap(): Promise<void> {
       lastBootstrapDay = today;
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (tz && data.prefs.timezone !== tz) dispatch({ type: 'prefs.set', data: { prefs: { timezone: tz } } });
-      setStatus(status === 'offline' ? 'connecting' : status);
+      setStatus(status === 'offline' || status === 'error' ? 'connecting' : status);
     } catch (e) {
-      if (!(e instanceof ApiError)) setStatus('offline');
+      // 5xx = the server answered but is broken (e.g. missing .env): say so instead of 'Connecting…'
+      if (e instanceof ApiError && e.status >= 500) setStatus('error');
+      else if (!(e instanceof ApiError)) setStatus('offline');
       throw e;
     } finally {
       bootstrapping = null;

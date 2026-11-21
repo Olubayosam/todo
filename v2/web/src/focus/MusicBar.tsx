@@ -118,17 +118,17 @@ export function MusicBar() {
   const controlsDisabled = p.source === 'youtube' && !ytActive;
 
   return (
-    <div className="flex w-[min(52rem,96vw)] flex-col gap-2 rounded-3xl bg-white/6 p-2 backdrop-blur-xl md:flex-row md:items-center">
-      <div className="flex items-center gap-1 rounded-full bg-black/25 p-1">
+    <div className="flex w-[min(56rem,96vw)] flex-col gap-2 rounded-3xl bg-white/6 p-2 backdrop-blur-xl lg:flex-row lg:items-center">
+      <div className="flex shrink-0 items-center gap-1 rounded-full bg-black/25 p-1">
         {sources.map((s) => (
           <button
             key={s.key}
             type="button"
             onClick={() => (setSource(s.key), setChangingLink(false))}
-            className={`flex h-8 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs font-medium transition-colors md:flex-none ${p.source === s.key ? 'bg-ivory text-carbon' : 'text-ivory/60 hover:text-ivory'}`}
+            className={`flex h-8 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs font-medium transition-colors lg:flex-none ${p.source === s.key ? 'bg-ivory text-carbon' : 'text-ivory/60 hover:text-ivory'}`}
             aria-pressed={p.source === s.key}
           >
-            <s.icon size={13} className="hidden sm:block" /> {s.label}
+            <s.icon size={13} className="hidden xl:block" /> {s.label}
           </button>
         ))}
       </div>
@@ -169,7 +169,7 @@ export function MusicBar() {
             <button type="button" onClick={() => stop(0.6)} disabled={!p.playing && !p.title} className="grid size-8 place-items-center rounded-full text-ivory/50 hover:text-ivory disabled:opacity-30" aria-label="Stop music">
               <Square size={12} fill="currentColor" />
             </button>
-            <div className="min-w-36 flex-1 text-left">
+            <div className="min-w-0 flex-1 text-left">
               <p className="truncate text-xs text-ivory/85">
                 {p.error ??
                   p.title ??
@@ -198,12 +198,12 @@ export function MusicBar() {
             </div>
           </>
         )}
-        <label className="hidden items-center gap-1.5 text-ivory/50 sm:flex" title="Volume">
+        <label className="hidden shrink-0 items-center gap-1.5 pr-1 text-ivory/50 sm:flex" title="Volume">
           <Volume2 size={14} />
-          <input type="range" min={0} max={1} step={0.01} value={p.volume} onChange={(e) => setVolume(Number(e.target.value))} className="w-20 accent-[#4fd1c5]" aria-label="Volume" />
+          <input type="range" min={0} max={1} step={0.01} value={p.volume} onChange={(e) => setVolume(Number(e.target.value))} className="w-16 accent-[#4fd1c5] xl:w-20" aria-label="Volume" />
         </label>
       </div>
-      {p.source === 'youtube' && showPicker && p.error && <p className="px-3 pb-1 text-xs text-[#f37f79] md:max-w-48 md:pb-0">{p.error}</p>}
+      {p.source === 'youtube' && showPicker && p.error && <p className="px-3 pb-1 text-xs text-[#f37f79] lg:max-w-48 lg:pb-0">{p.error}</p>}
     </div>
   );
 }

@@ -135,8 +135,12 @@ function MusicSection() {
         {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />} Upload tracks
       </button>
       {uploading && <p className="mb-2 text-xs text-fg-3">{uploading}</p>}
+      <p className="mt-4 rounded-xl bg-sunken px-3 py-2.5 text-xs text-fg-3">
+        <strong className="text-fg-2">YouTube:</strong> in focus mode choose <em>YouTube</em> and paste any video, YouTube Music or playlist link. It plays in a small corner player
+        (YouTube requires the player to stay visible) and keeps playing while you work. Links you play are saved and synced to your other devices.
+      </p>
       {tracks.length > 0 && (
-        <ul className="divide-y divide-line rounded-xl border border-line">
+        <ul className="mt-3 divide-y divide-line rounded-xl border border-line">
           {tracks.map((t, i) => (
             <li key={t.uid} className="flex items-center gap-3 px-3 py-2 text-sm">
               <span className="w-5 text-right text-xs text-fg-3 tabular">{i + 1}</span>

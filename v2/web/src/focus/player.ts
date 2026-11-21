@@ -3,8 +3,9 @@ import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
 import { musicUrl } from '../lib/api';
 import { useData } from '../store/data';
 import { audio, startAmbient, type AmbientHandle, type AmbientKind } from './audio';
+import { loadYouTube, onYouTubeChange, parseYouTube, useYouTube, ytNext, ytPause, ytPlay, ytPrev, ytSetVolume, ytStop } from './youtube';
 
-export type MusicSource = 'folder' | 'library' | 'ambient';
+export type MusicSource = 'folder' | 'library' | 'youtube' | 'ambient';
 
 interface Track {
   title: string;
@@ -55,6 +56,12 @@ export const usePlayer = create<PlayerState>()(() => ({
   volume: Number(readPref('musicVolume', '0.7')) || 0.7,
   error: null,
 }));
+
+// Mirror YouTube's state into the shared player UI
+onYouTubeChange(({ playing, title, error }) => {
+  if (usePlayer.getState().source !== 'youtube') return;
+  usePlayer.setState({ playing, title, error });
+});
 
 let el: HTMLAudioElement | null = null;
 let gain: GainNode | null = null;
@@ -166,6 +173,11 @@ async function playIndex(i: number) {
 export async function play() {
   const s = usePlayer.getState();
   audio();
+  if (s.source === 'youtube') {
+    if (useYouTube.getState().active) ytPlay();
+    else usePlayer.setState({ error: 'Paste a YouTube link first.' });
+    return;
+  }
   if (s.source === 'ambient') {
     ambientHandle?.stop(0.3);
     ambientHandle = startAmbient(s.ambient, s.volume * 0.8);
@@ -190,6 +202,10 @@ export async function play() {
 }
 
 export function pause() {
+  if (usePlayer.getState().source === 'youtube') {
+    ytPause();
+    return;
+  }
   el?.pause();
   ambientHandle?.stop(0.6);
   ambientHandle = null;
@@ -197,15 +213,20 @@ export function pause() {
 }
 
 export function next() {
-  if (usePlayer.getState().source !== 'ambient') void playIndex(usePlayer.getState().index + 1);
+  const src = usePlayer.getState().source;
+  if (src === 'youtube') ytNext();
+  else if (src !== 'ambient') void playIndex(usePlayer.getState().index + 1);
 }
 
 export function prev() {
-  if (usePlayer.getState().source !== 'ambient') void playIndex(usePlayer.getState().index - 1);
+  const src = usePlayer.getState().source;
+  if (src === 'youtube') ytPrev();
+  else if (src !== 'ambient') void playIndex(usePlayer.getState().index - 1);
 }
 
 /** Stops and resets the queue (fades out gently). */
 export function stop(fadeSec = 1.5) {
+  if (useYouTube.getState().active) ytStop();
   ambientHandle?.stop(fadeSec);
   ambientHandle = null;
   if (el && gain) {
@@ -227,11 +248,15 @@ export function setVolume(v: number) {
   writePref('musicVolume', String(v));
   if (gain) gain.gain.value = v;
   ambientHandle?.setVolume(v * 0.8);
+  ytSetVolume(v);
 }
 
 export function setSource(source: MusicSource) {
-  const wasPlaying = usePlayer.getState().playing;
-  if (wasPlaying) stop(0.4);
+  const prevSource = usePlayer.getState().source;
+  if (prevSource === source) return;
+  const wasPlaying = usePlayer.getState().playing && source !== 'youtube';
+  if (usePlayer.getState().playing) stop(0.4);
+  if (prevSource === 'youtube') ytStop();
   writePref('musicSource', source);
   usePlayer.setState({ source, error: null });
   if (wasPlaying) setTimeout(() => void play(), 450);
@@ -243,4 +268,21 @@ export function setAmbient(kind: AmbientKind) {
   if (usePlayer.getState().playing && usePlayer.getState().source === 'ambient') void play();
 }
 
-export const AMBIENT_LABEL: Record<AmbientKind, string> = { rain: 'Soft rain', brown: 'Brown noise', waves: 'Ocean waves' };
+export const AMBIENT_LABEL: Record<AmbientKind, string> = { rain: 'Soft rain', stream: 'Flowing stream', brown: 'Brown noise', waves: 'Ocean waves' };
+
+/** Plays a YouTube link (switching the source to YouTube). */
+export async function playYouTubeLink(url: string): Promise<boolean> {
+  const ref = parseYouTube(url);
+  if (!ref) {
+    usePlayer.setState({ error: "That doesn't look like a YouTube link." });
+    return false;
+  }
+  if (usePlayer.getState().source !== 'youtube') setSource('youtube');
+  // stop any local audio first
+  ambientHandle?.stop(0.4);
+  ambientHandle = null;
+  el?.pause();
+  ytSetVolume(usePlayer.getState().volume);
+  await loadYouTube(ref);
+  return !useYouTube.getState().error;
+}

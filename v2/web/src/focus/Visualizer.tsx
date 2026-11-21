@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { getAnalyser } from './audio';
+import { usePlayer } from './player';
 
 /**
  * Ambient abstract visual for the focus page: drifting light fields and a
@@ -54,6 +55,14 @@ export function Visualizer({ mode, intensity = 1 }: { mode: 'work' | 'break' | '
         e = e / (64 * 255);
         b = b / (7 * 255);
       }
+      // YouTube audio plays inside its own (cross-origin) frame and can't be analysed,
+      // so give the shape a soft, music-like pulse instead.
+      const pl = usePlayer.getState();
+      if (pl.playing && pl.source === 'youtube') {
+        e = 0.22 + 0.08 * Math.sin(t * 1.9) + 0.05 * Math.sin(t * 3.7 + 1) + 0.03 * Math.sin(t * 7.3);
+        b = 0.3 + 0.12 * Math.max(0, Math.sin(t * 2.2)) ** 3;
+        for (let i = 0; i < 48; i++) bins[i] = 90 + 60 * Math.sin(t * (1.3 + i * 0.07) + i * 0.9) * Math.sin(t * 0.4 + i * 0.3);
+      }
       const paused = modeRef.current === 'paused';
       energy = lerp(energy, paused ? 0 : e, 0.08);
       bass = lerp(bass, paused ? 0 : b, 0.12);
@@ -96,7 +105,7 @@ export function Visualizer({ mode, intensity = 1 }: { mode: 'work' | 'break' | '
             0.035 * Math.sin(3 * th + t * 0.5 + ring) +
             0.025 * Math.sin(5 * th - t * 0.35 + ring * 2) +
             0.015 * Math.sin(8 * th + t * 0.8) +
-            (analyser && !paused ? bin * 0.09 * intensity : 0);
+            (!paused ? bin * 0.09 * intensity : 0);
           const r = R * (1 + wobble) * (1 + ring * 0.07);
           const x = cx + Math.cos(th) * r;
           const y = cy + Math.sin(th) * r;

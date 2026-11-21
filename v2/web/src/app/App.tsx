@@ -13,6 +13,7 @@ import { FocusMiniCard } from '../focus/FocusMiniCard';
 import { FocusController } from '../focus/FocusController';
 import { FocusSetupDialog } from '../focus/FocusSetupDialog';
 import { PipHost } from '../focus/pip';
+import { YouTubeDock } from '../focus/YouTubeDock';
 import { TaskDetail } from '../components/tasks/TaskDetail';
 import { QuickAdd } from '../components/tasks/QuickAdd';
 import { Dialog } from '../components/ui/Dialog';
@@ -198,6 +199,7 @@ function Shell() {
       <FocusMiniCard />
       <SelectionBar />
       <PipHost active={focusActive} />
+      <YouTubeDock />
       <QuickAddDialog />
       <FocusSetupDialog />
       <PlanDayDialog />

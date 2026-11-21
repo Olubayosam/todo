@@ -8,6 +8,7 @@ import { focusAction, createTasksFromText, toggleDone } from '../sync/actions';
 import { Checkbox } from '../components/ui/bits';
 import { Visualizer } from './Visualizer';
 import { MusicBar } from './MusicBar';
+import { useYouTube } from './youtube';
 import { openPip, pipSupported, usePip } from './pip';
 import { serverNow } from '../lib/api';
 import type { FocusState } from '../lib/types';
@@ -38,6 +39,8 @@ export function FocusPage() {
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [fullscreen, setFullscreen] = useState(!!document.fullscreenElement);
   const [adding, setAdding] = useState(false);
+  const ytActive = useYouTube((s) => s.active);
+  const setYtSlot = useYouTube((s) => s.setSlot);
 
   useEffect(() => {
     const onFs = () => setFullscreen(!!document.fullscreenElement);
@@ -100,7 +103,9 @@ export function FocusPage() {
       </header>
 
       {/* Centre */}
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center">
+      <main className="no-scrollbar relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center-safe overflow-y-auto px-6 text-center">
+        {/* The YouTube player (rendered once at the app root) is positioned over this slot */}
+        {ytActive && <div ref={setYtSlot} className="mb-6 size-50 shrink-0 rounded-xl md:absolute md:left-6 md:top-2 md:mb-0" aria-hidden />}
         {active && snap && focus ? (
           <>
             <p className={`mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] ${phase === 'break' ? 'text-gold' : phase === 'paused' ? 'text-ivory/50' : 'text-cyan'}`}>

@@ -108,7 +108,9 @@ export interface Prefs {
   focusDefaults?: { workMin: number; breakEveryMin: number; breakMin: number };
   lastPlanDate?: string;
   view?: 'list' | 'cards';
-  ambient?: 'rain' | 'brown' | 'waves' | 'none';
+  ambient?: 'rain' | 'stream' | 'brown' | 'waves' | 'none';
+  /** Saved YouTube links for focus music (synced across devices) */
+  youtubeLinks?: { url: string; title?: string }[];
 }
 
 export interface Change {

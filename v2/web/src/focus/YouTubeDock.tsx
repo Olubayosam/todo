@@ -3,6 +3,7 @@ import { Maximize2, Pause, Play, Square } from 'lucide-react';
 import { useYouTube } from './youtube';
 import { pause, play, stop, usePlayer } from './player';
 import { useUI } from '../store/ui';
+import { useCollapsed } from '../hooks/useCollapsed';
 
 /**
  * One persistent YouTube player for the whole app (moving an iframe in the DOM
@@ -17,6 +18,7 @@ export function YouTubeDock() {
   const title = useYouTube((s) => s.title);
   const playing = usePlayer((s) => s.playing && s.source === 'youtube');
   const route = useUI((s) => s.route.name);
+  const [sidebarFolded] = useCollapsed('sidebar', false);
   const wrap = useRef<HTMLDivElement>(null);
 
   const hostRef = useCallback((el: HTMLDivElement | null) => {
@@ -59,7 +61,7 @@ export function YouTubeDock() {
         inSlot
           ? 'fixed z-[55]'
           : docked
-            ? 'fixed right-3 top-[4.25rem] z-40 rounded-2xl border border-white/10 bg-carbon/95 p-1.5 text-ivory shadow-lg backdrop-blur-xl animate-fade-up sm:right-auto sm:top-auto sm:bottom-6 sm:left-[5.5rem] lg:left-[17.5rem]'
+            ? 'fixed right-3 top-[4.25rem] z-40 rounded-2xl border border-white/10 bg-carbon/95 p-1.5 text-ivory shadow-lg backdrop-blur-xl animate-fade-up sm:right-auto sm:top-auto sm:bottom-6 sm:left-[5.5rem] ' + (sidebarFolded ? '' : 'lg:left-[17.5rem]')
             : // Not in use: parked off-screen (nothing is playing)
               'pointer-events-none fixed -left-[9999px] top-0 opacity-0'
       }

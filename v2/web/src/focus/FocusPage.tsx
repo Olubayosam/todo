@@ -86,7 +86,7 @@ export function FocusPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.55)_100%)]" aria-hidden />
 
       {/* Top bar */}
-      <header className="safe-top relative z-10 flex items-center justify-between px-4 py-3 sm:px-6">
+      <header className="safe-top relative z-10 flex items-center justify-between px-4 pb-3 sm:px-6 [--safe-pt:0.75rem]">
         <button type="button" onClick={exit} className="btn h-10 rounded-full bg-white/5 px-4 text-ivory/80 backdrop-blur hover:bg-white/10" aria-label="Leave focus mode">
           <ArrowLeft size={16} /> <span className="hidden sm:inline">Back to tasks</span>
         </button>
@@ -228,7 +228,7 @@ export function FocusPage() {
       </main>
 
       {/* Bottom: park a thought + music */}
-      <footer className="safe-bottom relative z-10 flex flex-col items-center gap-3 px-4 pb-4 sm:px-6">
+      <footer className="safe-bottom relative z-10 flex flex-col items-center gap-3 px-4 sm:px-6 [--safe-pb:1rem]">
         {active && (
           <form
             onSubmit={(e) => {

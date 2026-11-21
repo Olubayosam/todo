@@ -14,6 +14,7 @@ import { FocusController } from '../focus/FocusController';
 import { FocusSetupDialog } from '../focus/FocusSetupDialog';
 import { PipHost } from '../focus/pip';
 import { YouTubeDock } from '../focus/YouTubeDock';
+import { useCollapsed } from '../hooks/useCollapsed';
 import { TaskDetail } from '../components/tasks/TaskDetail';
 import { QuickAdd } from '../components/tasks/QuickAdd';
 import { Dialog } from '../components/ui/Dialog';
@@ -77,7 +78,7 @@ function DetailHost({ inline }: { inline: boolean }) {
   if (inline) {
     if (!uid) return null;
     return (
-      <aside className="sticky top-0 h-dvh w-[420px] shrink-0 border-l border-line bg-raised animate-fade-up" aria-label="Task details">
+      <aside className="sticky top-0 h-dvh w-105 shrink-0 border-l border-line bg-raised animate-fade-up" aria-label="Task details">
         <TaskDetail key={uid} uid={uid} virtualTask={virtualTask} onClose={close} />
       </aside>
     );
@@ -169,7 +170,19 @@ function Shell() {
   const selecting = useUI((s) => s.selecting);
   const focusActive = useData((s) => isActive(s.focus));
   const openUid = useUI((s) => s.openTaskUid);
+  // Desktop: foldable sidebar (remembered). Tablet: always the icon rail.
+  const [sidebarFolded, toggleSidebar] = useCollapsed('sidebar', false);
   useGlobalShortcuts();
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === '\\') {
+        e.preventDefault();
+        toggleSidebar();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [toggleSidebar]);
 
   // Keep the URL in sync on first load (e.g. "/#/" -> "#/today")
   useEffect(() => {
@@ -178,7 +191,7 @@ function Shell() {
 
   return (
     <div className="flex min-h-dvh">
-      {!phone && <Sidebar rail={tablet} />}
+      {!phone && <Sidebar rail={tablet || sidebarFolded} onToggle={desktop ? () => toggleSidebar() : undefined} />}
       <div className="flex min-w-0 flex-1 flex-col">
         {phone && <MobileHeader />}
         <main key={route.name} className="flex-1 animate-fade-up">

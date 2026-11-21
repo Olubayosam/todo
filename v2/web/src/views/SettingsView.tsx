@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, Download, FolderOpen, Loader2, Music2, RefreshCw, Tag as TagIcon, Trash2, Upload, User } from 'lucide-react';
+import { Bell, ChevronDown, Download, FolderOpen, Loader2, Music2, RefreshCw, Tag as TagIcon, Trash2, Upload, User } from 'lucide-react';
 import { useData } from '../store/data';
 import { useUI, toast, type Theme } from '../store/ui';
 import { setPrefs } from '../sync/actions';
@@ -11,20 +11,42 @@ import { TAG_HEX } from '../components/ui/bits';
 import type { MusicTrack, TagColor } from '../lib/types';
 import { SyncDot } from '../components/layout/Nav';
 import { useInstallPrompt } from '../app/install';
+import { useCollapsed } from '../hooks/useCollapsed';
 
+/** Foldable settings card; the fold state is remembered per device. */
 function Section({ icon, title, desc, children }: { icon: React.ReactNode; title: string; desc?: string; children: React.ReactNode }) {
+  const [collapsed, toggle] = useCollapsed(`settings:${title}`, false);
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
-      <div className="mb-4 flex items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-sunken text-fg-2">{icon}</span>
-        <div>
-          <h2 className="font-semibold">{title}</h2>
-          {desc && <p className="text-sm text-fg-3">{desc}</p>}
-        </div>
-      </div>
-      {children}
+    <section className="rounded-2xl border border-line bg-surface shadow-sm">
+      <h2>
+        <button type="button" onClick={() => toggle()} aria-expanded={!collapsed} className="group flex w-full items-start gap-3 p-5 text-left">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-sunken text-fg-2">{icon}</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">{title}</span>
+            {desc && <span className="block text-sm font-normal text-fg-3">{desc}</span>}
+          </span>
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg text-fg-3 group-hover:bg-hover group-hover:text-fg">
+            <ChevronDown size={16} className={`transition-transform ${collapsed ? '-rotate-90' : ''}`} />
+          </span>
+        </button>
+      </h2>
+      {!collapsed && <div className="-mt-1 px-5 pb-5">{children}</div>}
     </section>
   );
+}
+
+/** Shows the first `limit` items of a long list with a "Show all" toggle. */
+function useShowMore<T>(items: T[], limit: number) {
+  const [all, setAll] = useState(false);
+  const visible = all ? items : items.slice(0, limit);
+  const toggle =
+    items.length > limit ? (
+      <button type="button" onClick={() => setAll((v) => !v)} className="mt-2 flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-fg-2 hover:bg-hover hover:text-fg" aria-expanded={all}>
+        <ChevronDown size={13} className={`transition-transform ${all ? 'rotate-180' : ''}`} />
+        {all ? 'Show less' : `Show all ${items.length}`}
+      </button>
+    ) : null;
+  return [visible, toggle] as const;
 }
 
 function NotificationsSection() {
@@ -87,6 +109,7 @@ function MusicSection() {
   const [uploading, setUploading] = useState<string | null>(null);
   useEffect(() => void loadFolderInfo(), []);
   const tracks = Object.values(music).sort((a, b) => a.position - b.position);
+  const [visibleTracks, moreTracks] = useShowMore(tracks, 5);
 
   const upload = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -141,7 +164,7 @@ function MusicSection() {
       </p>
       {tracks.length > 0 && (
         <ul className="mt-3 divide-y divide-line rounded-xl border border-line">
-          {tracks.map((t, i) => (
+          {visibleTracks.map((t, i) => (
             <li key={t.uid} className="flex items-center gap-3 px-3 py-2 text-sm">
               <span className="w-5 text-right text-xs text-fg-3 tabular">{i + 1}</span>
               <input
@@ -158,6 +181,7 @@ function MusicSection() {
           ))}
         </ul>
       )}
+      {moreTracks}
     </Section>
   );
 }
@@ -166,11 +190,12 @@ function TagsSection() {
   const tags = useData((s) => s.tags);
   const [name, setName] = useState('');
   const list = Object.values(tags).sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
+  const [visibleTags, moreTags] = useShowMore(list, 6);
   const colors = Object.keys(TAG_HEX) as TagColor[];
   return (
     <Section icon={<TagIcon size={17} />} title="Tags" desc="Type #tag when adding a task to create one.">
       <ul className="mb-3 flex flex-col gap-1">
-        {list.map((t) => (
+        {visibleTags.map((t) => (
           <li key={t.uid} className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-hover">
             <div className="flex gap-1">
               {colors.map((c) => (
@@ -184,6 +209,7 @@ function TagsSection() {
           </li>
         ))}
       </ul>
+      {moreTags}
       <form
         onSubmit={(e) => {
           e.preventDefault();

@@ -21,20 +21,27 @@ import { useSubtaskCounts } from '../../hooks/useTasks';
 import { reorderTasks, updateTask } from '../../sync/actions';
 import { PRIORITY_COLOR } from '../ui/bits';
 import { TaskItem } from './TaskItem';
+import { useCollapsed } from '../../hooks/useCollapsed';
 
 /** Cards share one height; each takes the width its title needs (capped), and rows fill out evenly. */
 const CARD_CELL = 'w-full sm:w-auto sm:min-w-56 sm:max-w-[26rem] sm:grow';
 const containerClass = (variant: 'row' | 'card') => (variant === 'card' ? 'flex flex-wrap gap-3' : 'flex flex-col gap-2');
 
-function GroupHeader({ color, label, count, children }: { color: string; label: string; count: number; children?: React.ReactNode }) {
+/** Group header; the whole row folds/unfolds the group. */
+function GroupHeader({ color, label, count, collapsed, onToggle }: { color: string; label: string; count: number; collapsed: boolean; onToggle: () => void }) {
   return (
-    <header className="mb-2.5 flex items-center gap-2.5">
-      <span className="size-2 shrink-0 rounded-full" style={{ background: color }} />
-      <h3 className="label">{label}</h3>
-      <span className="text-xs text-fg-3 tabular">{count}</span>
-      <span className="h-px flex-1 bg-line" aria-hidden />
-      {children}
-    </header>
+    <h3 className={collapsed ? '' : 'mb-2.5'}>
+      <button type="button" onClick={onToggle} aria-expanded={!collapsed} className="group/gh flex w-full items-center gap-2.5 rounded-lg py-1 text-left">
+        <span className="size-2 shrink-0 rounded-full" style={{ background: color }} />
+        <span className="label group-hover/gh:text-fg-2">{label}</span>
+        <span className="text-xs text-fg-3 tabular">{count}</span>
+        <span className="h-px flex-1 bg-line" aria-hidden />
+        <span className="grid size-6 place-items-center rounded-md text-fg-3 group-hover/gh:bg-hover group-hover/gh:text-fg">
+          <ChevronDown size={15} className={`transition-transform ${collapsed ? '-rotate-90' : ''}`} />
+        </span>
+        <span className="sr-only">{collapsed ? `Show ${label.toLowerCase()} tasks` : `Hide ${label.toLowerCase()} tasks`}</span>
+      </button>
+    </h3>
   );
 }
 
@@ -57,16 +64,20 @@ function SortableTask({ task, variant, showDate, counts }: { task: Task; variant
 
 function Group({ priority, tasks, variant, showDate, counts, active }: { priority: Priority; tasks: Task[]; variant: 'row' | 'card'; showDate?: boolean; counts: ReturnType<typeof useSubtaskCounts>; active: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: `group:${priority}`, data: { priority } });
+  const [collapsed, toggle] = useCollapsed(`group:${priority}`, false);
   return (
+    // Still a drop target when folded: dropping on the header moves the task into this priority
     <section ref={setNodeRef} className={`-m-2 rounded-2xl p-2 transition-colors ${active && isOver ? 'bg-cyan-soft/50' : ''}`} aria-label={`${PRIORITY_META[priority].label} priority`}>
-      <GroupHeader color={PRIORITY_COLOR[priority]} label={PRIORITY_META[priority].label} count={tasks.length} />
-      <SortableContext items={tasks.map((t) => t.uid)} strategy={variant === 'card' ? rectSortingStrategy : verticalListSortingStrategy}>
-        <div className={containerClass(variant)}>
-          {tasks.map((t) => (
-            <SortableTask key={t.uid} task={t} variant={variant} showDate={showDate} counts={counts} />
-          ))}
-        </div>
-      </SortableContext>
+      <GroupHeader color={PRIORITY_COLOR[priority]} label={PRIORITY_META[priority].label} count={tasks.length} collapsed={collapsed} onToggle={() => toggle()} />
+      {!collapsed && (
+        <SortableContext items={tasks.map((t) => t.uid)} strategy={variant === 'card' ? rectSortingStrategy : verticalListSortingStrategy}>
+          <div className={containerClass(variant)}>
+            {tasks.map((t) => (
+              <SortableTask key={t.uid} task={t} variant={variant} showDate={showDate} counts={counts} />
+            ))}
+          </div>
+        </SortableContext>
+      )}
     </section>
   );
 }
@@ -74,7 +85,8 @@ function Group({ priority, tasks, variant, showDate, counts, active }: { priorit
 export function TaskList({ tasks, variant, showDate, grouped = true }: { tasks: Task[]; variant: 'row' | 'card'; showDate?: boolean; grouped?: boolean }) {
   const counts = useSubtaskCounts();
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [showDone, setShowDone] = useState(true);
+  // Completed starts folded
+  const [doneCollapsed, toggleDone] = useCollapsed('group:done', true);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }),
@@ -128,12 +140,8 @@ export function TaskList({ tasks, variant, showDate, grouped = true }: { tasks: 
         )}
         {done.length > 0 && (
           <section aria-label="Completed">
-            <GroupHeader color="var(--cyan)" label="Completed" count={done.length}>
-              <button type="button" onClick={() => setShowDone((v) => !v)} className="-mr-1 grid size-7 place-items-center rounded-lg text-fg-3 hover:bg-hover hover:text-fg" aria-expanded={showDone} aria-label={showDone ? 'Hide completed' : 'Show completed'}>
-                <ChevronDown size={15} className={`transition-transform ${showDone ? '' : '-rotate-90'}`} />
-              </button>
-            </GroupHeader>
-            {showDone && (
+            <GroupHeader color="var(--cyan)" label="Completed" count={done.length} collapsed={doneCollapsed} onToggle={() => toggleDone()} />
+            {!doneCollapsed && (
               <div className={containerClass(variant)}>
                 {done.map((t) => (
                   <div key={t.uid} className={variant === 'card' ? CARD_CELL : undefined}>

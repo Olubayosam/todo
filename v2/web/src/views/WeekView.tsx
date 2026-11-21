@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useCollapsed } from '../hooks/useCollapsed';
+
 import { DndContext, DragOverlay, PointerSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useUI } from '../store/ui';
 import { useTasksInRange } from '../hooks/useTasks';
 import { addDays, formatDay, formatDuration, startOfWeek, todayKey, weekDays } from '../lib/dates';
@@ -11,6 +13,9 @@ import { Checkbox, PRIORITY_COLOR, RepeatIcon } from '../components/ui/bits';
 import { toggleDone } from '../sync/actions';
 import { QuickAdd } from '../components/tasks/QuickAdd';
 import { useIsDesktop } from '../hooks/useMediaQuery';
+
+// Open tasks shown per day before "N more"
+const OPEN_LIMIT = 5;
 
 function MiniTask({ task, overlay }: { task: Task; overlay?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.uid, disabled: !!task.virtual || overlay });
@@ -26,7 +31,7 @@ function MiniTask({ task, overlay }: { task: Task; overlay?: boolean }) {
       <div className="pt-px">
         <Checkbox size={16} checked={task.done} priority={task.priority} onChange={() => toggleDone(task)} label={`Toggle ${task.text}`} />
       </div>
-      <span className={`min-w-0 flex-1 break-words ${task.done ? 'text-fg-3 line-through' : ''}`}>{task.text}</span>
+      <span className={`min-w-0 flex-1 wrap-break-word ${task.done ? 'text-fg-3 line-through' : ''}`}>{task.text}</span>
       {task.recurrenceUid && <RepeatIcon />}
       {task.priority !== 'low' && !task.done && <span className="mt-1.5 size-1.5 shrink-0 rounded-full" style={{ background: PRIORITY_COLOR[task.priority] }} />}
     </div>
@@ -37,6 +42,11 @@ function DayColumn({ date, tasks, desktop }: { date: string; tasks: Task[]; desk
   const { setNodeRef, isOver } = useDroppable({ id: date });
   const navigate = useUI((s) => s.navigate);
   const [adding, setAdding] = useState(false);
+  const [showAllOpen, setShowAllOpen] = useState(false);
+  // Shared with the day list: completed stays folded until you open it
+  const [doneCollapsed, toggleDoneFold] = useCollapsed('group:done', true);
+  const openTasks = tasks.filter((t) => !t.done);
+  const doneTasks = tasks.filter((t) => t.done);
   const today = todayKey();
   const isToday = date === today;
   const past = date < today;
@@ -74,9 +84,25 @@ function DayColumn({ date, tasks, desktop }: { date: string; tasks: Task[]; desk
         </span>
       </button>
       <div className="flex flex-col gap-1.5">
-        {tasks.map((t) => (
+        {(showAllOpen ? openTasks : openTasks.slice(0, OPEN_LIMIT)).map((t) => (
           <MiniTask key={t.uid} task={t} />
         ))}
+        {openTasks.length > OPEN_LIMIT && (
+          <button type="button" onClick={() => setShowAllOpen((v) => !v)} className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs font-medium text-fg-2 hover:bg-hover hover:text-fg" aria-expanded={showAllOpen}>
+            <ChevronDown size={13} className={`transition-transform ${showAllOpen ? 'rotate-180' : ''}`} />
+            {showAllOpen ? 'Show less' : `${openTasks.length - OPEN_LIMIT} more`}
+          </button>
+        )}
+        {doneTasks.length > 0 && (
+          <>
+            <button type="button" onClick={() => toggleDoneFold()} className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs text-fg-3 hover:bg-hover hover:text-fg" aria-expanded={!doneCollapsed}>
+              <ChevronDown size={13} className={`transition-transform ${doneCollapsed ? '-rotate-90' : ''}`} />
+              <span className="size-1.5 rounded-full bg-cyan" aria-hidden />
+              {doneTasks.length} done
+            </button>
+            {!doneCollapsed && doneTasks.map((t) => <MiniTask key={t.uid} task={t} />)}
+          </>
+        )}
       </div>
       {adding ? (
         <div className="mt-1.5">
@@ -110,7 +136,7 @@ export function WeekView({ date }: { date: string }) {
   const rangeLabel = `${formatDay(days[0], { day: 'numeric', month: 'short' })} – ${formatDay(days[6], { day: 'numeric', month: 'short', year: 'numeric' })}`;
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] px-4 pb-32 pt-5 sm:px-8 sm:pt-10">
+    <div className="mx-auto w-full max-w-350 px-4 pb-32 pt-5 sm:px-8 sm:pt-10">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-1 text-sm text-fg-3">{thisWeek ? 'This week' : 'Week'}</p>

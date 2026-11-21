@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, CalendarDays, CalendarRange, Grid3x3, Inbox, LogOut, Monitor, Moon, MoreHorizontal, Play, Plus, Search, Settings, Sun, Sunrise } from 'lucide-react';
+import { BarChart3, CalendarDays, CalendarRange, Grid3x3, Inbox, LogOut, Monitor, Moon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Play, Plus, Search, Settings, Sun, Sunrise } from 'lucide-react';
 import { useUI, type Route, type Theme } from '../../store/ui';
 import { useData } from '../../store/data';
 import { todayKey } from '../../lib/dates';
@@ -92,7 +92,8 @@ function ThemeSwitch({ compact }: { compact?: boolean }) {
   );
 }
 
-export function Sidebar({ rail }: { rail: boolean }) {
+/** Full sidebar, or an icon rail. `onToggle` (desktop) lets you fold/unfold it; tablet is always a rail. */
+export function Sidebar({ rail, onToggle }: { rail: boolean; onToggle?: () => void }) {
   const route = useUI((s) => s.route);
   const navigate = useUI((s) => s.navigate);
   const set = useUI((s) => s.set);
@@ -101,9 +102,14 @@ export function Sidebar({ rail }: { rail: boolean }) {
   const isTodayRoute = route.name === 'day' && route.date === todayKey();
 
   return (
-    <aside className={`sticky top-0 flex h-dvh shrink-0 flex-col border-r border-line bg-canvas ${rail ? 'w-16 items-center px-2' : 'w-64 px-3'} py-4`}>
-      <div className={`flex items-center ${rail ? 'justify-center' : 'justify-between px-2'} mb-6 h-8`}>
-        {rail ? <Submark className="h-6" /> : <Logo className="h-[18px]" />}
+    <aside className={`sticky top-0 flex h-dvh shrink-0 flex-col border-r border-line bg-canvas transition-[width] duration-200 ${rail ? 'w-16 items-center px-2' : 'w-64 px-3'} py-4`}>
+      <div className={`mb-6 flex ${rail ? 'flex-col items-center gap-3' : 'h-8 items-center justify-between pl-2'}`}>
+        {rail ? <Submark className="h-6" /> : <Logo className="h-4.5" />}
+        {onToggle && (
+          <button type="button" onClick={onToggle} className="icon-btn size-8" aria-label={rail ? 'Expand menu' : 'Collapse menu'} title={rail ? 'Expand menu (Ctrl+\\)' : 'Collapse menu (Ctrl+\\)'}>
+            {rail ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+          </button>
+        )}
       </div>
 
       <button
@@ -270,7 +276,7 @@ export function MobileNav() {
 
 export function MobileHeader() {
   return (
-    <header className="safe-top sticky top-0 z-30 flex items-center justify-between border-b border-line bg-canvas/85 px-4 py-2.5 backdrop-blur-xl">
+    <header className="safe-top sticky top-0 z-30 flex items-center justify-between border-b border-line bg-canvas/85 px-4 pb-3 backdrop-blur-xl [--safe-pt:1rem]">
       <Logo className="h-4" />
       <div className="flex items-center gap-1">
         <SyncDot />

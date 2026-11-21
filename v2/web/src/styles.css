@@ -400,9 +400,11 @@ dialog.ui-dialog.is-side {
     animation: none;
   }
 }
+/* Safe-area padding ADDS to the element's own spacing (set via --safe-pt / --safe-pb),
+   instead of replacing it — these unlayered rules would otherwise override pt-*/pb-*. */
 .safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--safe-pb, 0px));
 }
 .safe-top {
-  padding-top: env(safe-area-inset-top);
+  padding-top: calc(env(safe-area-inset-top) + var(--safe-pt, 0px));
 }

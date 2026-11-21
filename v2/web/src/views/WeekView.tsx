@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { DndContext, DragOverlay, PointerSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useUI } from '../store/ui';
@@ -135,7 +136,7 @@ export function WeekView({ date }: { date: string }) {
             <DayColumn key={d} date={d} tasks={byDate[d] ?? []} desktop={desktop} />
           ))}
         </div>
-        <DragOverlay>{active && <MiniTask task={active} overlay />}</DragOverlay>
+        {createPortal(<DragOverlay>{active && <MiniTask task={active} overlay />}</DragOverlay>, document.body)}
       </DndContext>
       <p className="mt-6 text-center text-xs text-fg-3">Drag tasks between days to reschedule.</p>
     </div>

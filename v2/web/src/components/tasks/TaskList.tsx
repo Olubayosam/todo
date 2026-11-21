@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   DndContext,
   DragOverlay,
@@ -21,10 +22,26 @@ import { reorderTasks, updateTask } from '../../sync/actions';
 import { PRIORITY_COLOR } from '../ui/bits';
 import { TaskItem } from './TaskItem';
 
+/** Cards share one height; each takes the width its title needs (capped), and rows fill out evenly. */
+const CARD_CELL = 'w-full sm:w-auto sm:min-w-56 sm:max-w-[26rem] sm:grow';
+const containerClass = (variant: 'row' | 'card') => (variant === 'card' ? 'flex flex-wrap gap-3' : 'flex flex-col gap-2');
+
+function GroupHeader({ color, label, count, children }: { color: string; label: string; count: number; children?: React.ReactNode }) {
+  return (
+    <header className="mb-2.5 flex items-center gap-2.5">
+      <span className="size-2 shrink-0 rounded-full" style={{ background: color }} />
+      <h3 className="label">{label}</h3>
+      <span className="text-xs text-fg-3 tabular">{count}</span>
+      <span className="h-px flex-1 bg-line" aria-hidden />
+      {children}
+    </header>
+  );
+}
+
 function SortableTask({ task, variant, showDate, counts }: { task: Task; variant: 'row' | 'card'; showDate?: boolean; counts: ReturnType<typeof useSubtaskCounts> }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.uid, data: { priority: task.priority }, disabled: !!task.virtual });
   return (
-    <div ref={setNodeRef}>
+    <div ref={setNodeRef} className={variant === 'card' ? CARD_CELL : undefined}>
       <TaskItem
         task={task}
         variant={variant}
@@ -41,14 +58,10 @@ function SortableTask({ task, variant, showDate, counts }: { task: Task; variant
 function Group({ priority, tasks, variant, showDate, counts, active }: { priority: Priority; tasks: Task[]; variant: 'row' | 'card'; showDate?: boolean; counts: ReturnType<typeof useSubtaskCounts>; active: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: `group:${priority}`, data: { priority } });
   return (
-    <section ref={setNodeRef} className={`rounded-2xl transition-colors ${active && isOver ? 'bg-hover/60' : ''}`} aria-label={`${PRIORITY_META[priority].label} priority`}>
-      <header className="mb-1 flex items-center gap-2 px-3 pt-1">
-        <span className="size-2 rounded-full" style={{ background: PRIORITY_COLOR[priority] }} />
-        <h3 className="label">{PRIORITY_META[priority].label}</h3>
-        <span className="text-xs text-fg-3 tabular">{tasks.length}</span>
-      </header>
+    <section ref={setNodeRef} className={`-m-2 rounded-2xl p-2 transition-colors ${active && isOver ? 'bg-cyan-soft/50' : ''}`} aria-label={`${PRIORITY_META[priority].label} priority`}>
+      <GroupHeader color={PRIORITY_COLOR[priority]} label={PRIORITY_META[priority].label} count={tasks.length} />
       <SortableContext items={tasks.map((t) => t.uid)} strategy={variant === 'card' ? rectSortingStrategy : verticalListSortingStrategy}>
-        <div className={variant === 'card' ? 'grid gap-3 p-1 sm:grid-cols-2 2xl:grid-cols-3' : 'flex flex-col'}>
+        <div className={containerClass(variant)}>
           {tasks.map((t) => (
             <SortableTask key={t.uid} task={t} variant={variant} showDate={showDate} counts={counts} />
           ))}
@@ -101,12 +114,12 @@ export function TaskList({ tasks, variant, showDate, grouped = true }: { tasks: 
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
-      <div className="flex flex-col gap-4 sm:pl-3">
+      <div className="flex flex-col gap-8 sm:pl-3">
         {grouped ? (
           groups.map((g) => <Group key={g.priority} priority={g.priority} tasks={g.tasks} variant={variant} showDate={showDate} counts={counts} active={!!activeId} />)
         ) : (
           <SortableContext items={open.map((t) => t.uid)} strategy={verticalListSortingStrategy}>
-            <div className={variant === 'card' ? 'grid gap-3 sm:grid-cols-2' : 'flex flex-col'}>
+            <div className={containerClass(variant)}>
               {open.map((t) => (
                 <SortableTask key={t.uid} task={t} variant={variant} showDate={showDate} counts={counts} />
               ))}
@@ -115,28 +128,35 @@ export function TaskList({ tasks, variant, showDate, grouped = true }: { tasks: 
         )}
         {done.length > 0 && (
           <section aria-label="Completed">
-            <button type="button" onClick={() => setShowDone((v) => !v)} className="mb-1 flex items-center gap-2 px-3 pt-1 text-left">
-              <ChevronDown size={14} className={`text-fg-3 transition-transform ${showDone ? '' : '-rotate-90'}`} />
-              <span className="label">Completed</span>
-              <span className="text-xs text-fg-3 tabular">{done.length}</span>
-            </button>
+            <GroupHeader color="var(--cyan)" label="Completed" count={done.length}>
+              <button type="button" onClick={() => setShowDone((v) => !v)} className="-mr-1 grid size-7 place-items-center rounded-lg text-fg-3 hover:bg-hover hover:text-fg" aria-expanded={showDone} aria-label={showDone ? 'Hide completed' : 'Show completed'}>
+                <ChevronDown size={15} className={`transition-transform ${showDone ? '' : '-rotate-90'}`} />
+              </button>
+            </GroupHeader>
             {showDone && (
-              <div className={variant === 'card' ? 'grid gap-3 p-1 sm:grid-cols-2 2xl:grid-cols-3' : 'flex flex-col'}>
+              <div className={containerClass(variant)}>
                 {done.map((t) => (
-                  <TaskItem key={t.uid} task={t} variant={variant} showDate={showDate} subtaskCount={counts[t.uid]} />
+                  <div key={t.uid} className={variant === 'card' ? CARD_CELL : undefined}>
+                    <TaskItem task={t} variant={variant} showDate={showDate} subtaskCount={counts[t.uid]} />
+                  </div>
                 ))}
               </div>
             )}
           </section>
         )}
       </div>
-      <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }}>
-        {active && (
-          <div className="rotate-[0.6deg] rounded-xl bg-raised shadow-lg">
-            <TaskItem task={active} variant={variant} showDate={showDate} subtaskCount={counts[active.uid]} />
-          </div>
-        )}
-      </DragOverlay>
+      {/* Rendered on <body>: an animated ancestor (page fade-in) would otherwise
+          become the containing block for the fixed overlay and offset it from the pointer. */}
+      {createPortal(
+        <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }}>
+          {active && (
+            <div className="h-full rotate-[0.6deg] rounded-2xl shadow-lg">
+              <TaskItem task={active} variant={variant} showDate={showDate} subtaskCount={counts[active.uid]} />
+            </div>
+          )}
+        </DragOverlay>,
+        document.body,
+      )}
     </DndContext>
   );
 }

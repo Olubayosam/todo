@@ -387,7 +387,9 @@ dialog.ui-dialog.is-side {
   }
 }
 .animate-fade-up {
-  animation: fade-up 0.35s var(--ease-out-soft) both;
+  /* "backwards", not "both": a filled transform would keep the element a containing
+     block for fixed descendants (e.g. drag overlays) after the animation ends. */
+  animation: fade-up 0.35s var(--ease-out-soft) backwards;
 }
 .animate-breathe {
   animation: breathe 2.4s ease-in-out infinite;

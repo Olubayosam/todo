@@ -206,18 +206,21 @@ export const TaskItem = memo(function TaskItem({ task, variant, showDate, subtas
         onPointerUp={cancelPress}
         onPointerLeave={cancelPress}
         onPointerMove={cancelPress}
-        className={`group relative flex min-h-32 cursor-pointer flex-col rounded-2xl border border-line bg-surface p-4 shadow-sm transition-[box-shadow,transform,border-color] hover:border-line-strong hover:shadow-md ${dragging ? 'opacity-40' : ''} ${task.done ? 'opacity-60' : ''} ${task.virtual ? 'border-dashed' : ''} ${ring}`}
+        // Fixed height; width comes from the content (set by the wrapping cell in TaskList)
+        className={`group relative flex h-34 w-full cursor-pointer flex-col rounded-2xl border p-4 transition-[box-shadow,border-color,background-color] ${task.done ? 'border-transparent bg-sunken/70' : 'border-line bg-surface shadow-sm hover:border-line-strong hover:shadow-md'} ${dragging ? 'opacity-40' : ''} ${task.virtual ? 'border-dashed' : ''} ${ring}`}
       >
-        <span className="absolute inset-y-4 left-0 w-[3px] rounded-r-full" style={{ background: PRIORITY_COLOR[task.priority] }} aria-hidden />
+        <span className="absolute inset-y-4 left-0 w-[3px] rounded-r-full" style={{ background: task.done ? 'var(--line-strong)' : PRIORITY_COLOR[task.priority] }} aria-hidden />
         <div className="flex items-start gap-3">
           {check}
-          <p className={`flex-1 text-[0.94rem] font-medium leading-snug ${task.done ? 'text-fg-3 line-through' : ''}`}>{task.text}</p>
-          <div className="-mr-2 -mt-1.5 flex items-center">
+          <p title={task.text} className={`line-clamp-2 flex-1 text-[0.94rem] font-medium leading-snug ${task.done ? 'text-fg-3 line-through' : ''}`}>
+            {task.text}
+          </p>
+          <div className="-mr-2 -mt-1.5 flex shrink-0 items-center">
             {handle}
             {menu}
           </div>
         </div>
-        <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-4 text-xs text-fg-3">
+        <div className="mt-auto flex flex-nowrap items-center gap-x-3 overflow-hidden pt-3 text-xs text-fg-3 mask-[linear-gradient(to_right,black_88%,transparent)] *:shrink-0">
           <PriorityChip priority={task.priority} />
           {meta}
           {inFocus && <span className="chip bg-cyan-soft text-cyan-fg animate-breathe">In focus</span>}
@@ -234,9 +237,11 @@ export const TaskItem = memo(function TaskItem({ task, variant, showDate, subtas
       onPointerUp={cancelPress}
       onPointerLeave={cancelPress}
       onPointerMove={cancelPress}
-      className={`group relative flex cursor-pointer items-start gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-colors hover:border-line hover:bg-surface ${dragging ? 'opacity-40' : ''} ${task.virtual ? 'opacity-75' : ''} ${ring}`}
+      className={`group relative flex cursor-pointer items-start gap-3 rounded-xl border py-3 pl-4 pr-3 transition-[border-color,box-shadow,background-color] ${task.done ? 'border-transparent bg-sunken/70' : 'border-line bg-surface shadow-sm hover:border-line-strong hover:shadow-md'} ${dragging ? 'opacity-40' : ''} ${task.virtual ? 'border-dashed opacity-75' : ''} ${ring}`}
     >
-      {handle && <div className="absolute -left-4 top-3">{handle}</div>}
+      {/* priority edge */}
+      <span className="absolute inset-y-2.5 left-0 w-[3px] rounded-r-full" style={{ background: task.done ? 'var(--line-strong)' : PRIORITY_COLOR[task.priority] }} aria-hidden />
+      {handle && <div className="absolute -left-5 top-3.5">{handle}</div>}
       <div className="pt-0.5">{check}</div>
       <div className="min-w-0 flex-1">
         <p className={`text-[0.92rem] leading-snug ${task.done ? 'text-fg-3 line-through decoration-fg-3/60' : 'text-fg'}`}>

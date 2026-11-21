@@ -128,10 +128,15 @@ function focus_log_work(array $row, array $state, int $now): void
     q('UPDATE v2_focus_sessions SET logged_work_sec = ? WHERE uid = ?', [$done, $state['uid']]);
     if ($taskUids) {
         $share = intdiv($delta, count($taskUids));
+        // Side effect of someone else's op: attribute to the server so the
+        // originating device does not skip it as its own echo.
+        $cid = $GLOBALS['CLIENT_ID'];
+        $GLOBALS['CLIENT_ID'] = 'server';
         foreach ($taskUids as $tu) {
             q('UPDATE tasks SET tracked_sec = tracked_sec + ?, updated_at = ? WHERE uid = ?', [$share, $now, $tu]);
             if ($t = load_task($tu)) record_change('task', $tu, 'upsert', $t);
         }
+        $GLOBALS['CLIENT_ID'] = $cid;
     }
 }
 
@@ -260,11 +265,16 @@ function focus_task_names(array $state): string
 
 function focus_schedule_pushes(array $state): void
 {
-    q('DELETE FROM v2_scheduled_pushes WHERE session_uid = ? AND sent_at IS NULL', [$state['uid']]);
+    // Only replace alerts still in the future: one that is already due (e.g. the
+    // "complete" alert when a tab marks the session done) must still go out.
+    q('DELETE FROM v2_scheduled_pushes WHERE session_uid = ? AND sent_at IS NULL AND due_at > ?', [$state['uid'], now_ms() + 1500]);
     if (($state['status'] ?? '') !== 'running') return;
     $sim = focus_simulate($state, now_ms(), true);
     $names = focus_task_names($state);
+    $already = q('SELECT payload FROM v2_scheduled_pushes WHERE session_uid = ?', [$state['uid']])->fetchAll(PDO::FETCH_COLUMN);
+    $haveTags = array_map(fn($p) => json_decode($p, true)['tag'] ?? '', $already);
     foreach (array_slice($sim['events'], 0, 40) as $e) {
+        if (in_array('focus-' . $state['uid'] . '-' . $e['tag'], $haveTags, true)) continue;
         if ($e['type'] === 'break') {
             $payload = ['title' => 'Time for a break', 'body' => 'Step away for ' . fmt_minutes($e['breakSec']) . '. ' . fmt_minutes($e['workLeftSec']) . ' of focus left.'];
         } elseif ($e['type'] === 'work') {

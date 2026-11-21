@@ -34,8 +34,8 @@ $start = time();
 $sent = 0;
 do {
     try {
-        focus_finalize_due();
         $sent += push_dispatch_due();
+        focus_finalize_due();
     } catch (Throwable $e) {
         error_log('[todo-v2 cron] ' . $e->getMessage());
     }

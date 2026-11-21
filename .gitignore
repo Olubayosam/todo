@@ -18,3 +18,6 @@ assets/OLUBAYOSAM BRAND IDENTITY/Mockup/
 
 # Local uploads (music etc.)
 v2/api/storage/
+
+# Packaged deploy output
+v2/deploy/

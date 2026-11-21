@@ -271,23 +271,30 @@ function becomeLeader(): Promise<void> {
 let leaderRelease: (() => void) | null = null;
 
 let started = false;
+let listenersBound = false;
 export function startSync() {
   if (started) return;
   started = true;
-
-  channel?.addEventListener('message', (e: MessageEvent<Msg>) => {
-    const m = e.data;
-    if (m.type === 'ops') useData.getState().applyOps(m.ops);
-    else if (m.type === 'changes') applyIncoming(m.changes, m.cursor);
-    else if (m.type === 'resync') void bootstrap().catch(() => {});
-    else if (m.type === 'status') setStatus(m.status, false);
-  });
 
   if ('locks' in navigator) {
     void navigator.locks.request('todo-v2-leader', () => becomeLeader());
   } else {
     void becomeLeader();
   }
+  scheduleFlush(500);
+
+  // Window/channel listeners are bound once per page, even across lock/unlock
+  if (listenersBound) return;
+  listenersBound = true;
+
+  channel?.addEventListener('message', (e: MessageEvent<Msg>) => {
+    if (!started) return;
+    const m = e.data;
+    if (m.type === 'ops') useData.getState().applyOps(m.ops);
+    else if (m.type === 'changes') applyIncoming(m.changes, m.cursor);
+    else if (m.type === 'resync') void bootstrap().catch(() => {});
+    else if (m.type === 'status') setStatus(m.status, false);
+  });
 
   window.addEventListener('online', () => {
     setStatus('connecting');
@@ -304,9 +311,8 @@ export function startSync() {
   });
   // Day rollover while the app is open
   setInterval(() => {
-    if (todayKey() !== lastBootstrapDay && lastBootstrapDay) void bootstrap().catch(() => {});
+    if (started && todayKey() !== lastBootstrapDay && lastBootstrapDay) void bootstrap().catch(() => {});
   }, 60000);
-  scheduleFlush(500);
 }
 
 export function stopSync() {

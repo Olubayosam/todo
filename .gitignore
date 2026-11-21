@@ -1,0 +1,20 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies & builds
+node_modules/
+dist/
+vendor/
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Heavy brand mockups not used by the app (kept locally only)
+assets/OLUBAYOSAM BRAND IDENTITY/Mockup/
+
+# Local uploads (music etc.)
+v2/api/storage/
